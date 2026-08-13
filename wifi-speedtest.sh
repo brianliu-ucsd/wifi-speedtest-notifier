@@ -10,6 +10,11 @@ STATE_FILE="$STATE_DIR/state"
 LOCK_DIR="$STATE_DIR/run.lock"
 LOG_FILE="$HOME/Library/Logs/wifi-speedtest.log"
 
+# Readings taken right after association are skewed low - DHCP, DNS, and the
+# 802.11 handshake are still settling. This is how long to wait before
+# testing.
+STABILIZE_DELAY_SECONDS=30
+
 mkdir -p "$STATE_DIR"
 mkdir -p "$(dirname "$LOG_FILE")"
 
@@ -128,8 +133,10 @@ fi
 SSID=$(get_ssid)
 NETWORK_LABEL="${SSID:-$GATEWAY_IP}"
 
+notify "Detected network change - waiting ${STABILIZE_DELAY_SECONDS}s for the connection to stabilize" "Wi-Fi changed: $NETWORK_LABEL"
+
 # Let the connection settle (DHCP, DNS, captive portal redirect) before testing.
-sleep 5
+sleep "$STABILIZE_DELAY_SECONDS"
 
 if ! command -v speedtest >/dev/null 2>&1; then
   log "error: speedtest CLI not found on PATH"
@@ -137,6 +144,8 @@ if ! command -v speedtest >/dev/null 2>&1; then
   notify "speedtest CLI is not installed - run install.sh again" "Speedtest failed: $NETWORK_LABEL"
   exit 1
 fi
+
+notify "Running speed test..." "Speedtest: $NETWORK_LABEL"
 
 RESULT_JSON=$(speedtest --accept-license --accept-gdpr -f json 2>>"$LOG_FILE")
 STATUS=$?
@@ -153,8 +162,8 @@ UPLOAD_MBPS=$(printf '%s' "$RESULT_JSON" | jq -r '(.upload.bandwidth * 8 / 10000
 PING_MS=$(printf '%s' "$RESULT_JSON" | jq -r '.ping.latency | round')
 
 if [ -z "$DOWNLOAD_MBPS" ] || [ "$DOWNLOAD_MBPS" = "null" ] ||
-   [ -z "$UPLOAD_MBPS" ] || [ "$UPLOAD_MBPS" = "null" ] ||
-   [ -z "$PING_MS" ] || [ "$PING_MS" = "null" ]; then
+  [ -z "$UPLOAD_MBPS" ] || [ "$UPLOAD_MBPS" = "null" ] ||
+  [ -z "$PING_MS" ] || [ "$PING_MS" = "null" ]; then
   write_state "$CURRENT_KEY" "$GATEWAY_IP" "fail"
   log "speedtest returned unparseable JSON on network $GATEWAY_IP"
   notify "Speed test result could not be parsed" "Speedtest failed: $NETWORK_LABEL"

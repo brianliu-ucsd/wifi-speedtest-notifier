@@ -63,8 +63,11 @@ and every 5 minutes as a safety net. Each time, it:
 3. Skips testing again if you're still on a network it already tested
    successfully. If the last test on this network failed (e.g. a captive
    portal you hadn't logged into yet), it retries.
-4. Runs the speed test and shows a notification with download, upload, and
-   ping.
+4. Notifies you that a change was detected and waits ~30 seconds for the
+   connection to stabilize - readings taken right after joining a network
+   are skewed low by DHCP/DNS/handshake overhead still in progress.
+5. Notifies you that the speed test has started, then runs it and shows a
+   final notification with download, upload, and ping.
 
 Logs, if you want to check on it:
 

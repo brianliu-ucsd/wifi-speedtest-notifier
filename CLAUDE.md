@@ -67,6 +67,13 @@ a poll that's skipped (not queued) if the Mac is asleep at the scheduled
 tick. None of the three is individually reliable; together they bound
 worst-case detection lag to ~5 minutes.
 
+**Deferred: a "Retry" button on the result notification.** `osascript
+display notification` has no click/button callback at all. A real button
+needs a third-party tool (`terminal-notifier`, `alerter`), both of which
+lean on Apple's deprecated NSUserNotification API - unverified whether that
+still works on current macOS. Revisit if this becomes worth the added
+dependency.
+
 ## Maintenance & blast radius
 
 What breaks this tool, and how far the damage spreads:
